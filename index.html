@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cursor Clone - AI Code Editor</title>
+    
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- CodeMirror JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">⚡</div>
+                <span>Cursor Pro</span>
+            </div>
+            <button class="new-file-btn" onclick="createNewFile()">✨ New File</button>
+            <div class="file-explorer" id="fileExplorer">
+                <!-- Files will be added here -->
+            </div>
+        </div>
+
+        <!-- Main Editor -->
+        <div class="editor-container">
+            <div class="editor-toolbar">
+                <div class="tabs" id="tabs">
+                    <!-- Tabs will be added here -->
+                </div>
+                <div class="run-controls">
+                    <button class="run-btn" id="runBtn" onclick="runCode()">
+                        ▶️ Run Code
+                    </button>
+                </div>
+            </div>
+            <div class="editor-wrapper">
+                <div class="code-area">
+                    <textarea id="editor"></textarea>
+                </div>
+                <div class="output-panel" id="outputPanel">
+                    <div class="output-header">
+                        <h4>Output</h4>
+                        <button class="chat-toggle" onclick="toggleOutput()">×</button>
+                    </div>
+                    <div class="output-content" id="outputContent">
+                        Ready to run your code...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Chat Panel -->
+        <div class="chat-panel" id="chatPanel">
+            <div class="chat-header">
+                <h3>🤖 AI Assistant</h3>
+                <button class="chat-toggle" onclick="toggleChat()" title="Toggle Chat">×</button>
+            </div>
+            
+            <div class="api-setup" id="apiSetup">
+                <label style="color: #f0f6fc; font-weight: 500;">Gemini API Key:</label>
+                <input type="password" class="api-input" id="apiKeyInput" placeholder="Enter your Gemini API key" value="AIzaSyDRwCMwW4isYZjnwFr1tYt2lT0lHjVVCCc">
+                <button class="api-save-btn" onclick="saveApiKey()">💾 Save Key</button>
+                <small style="color: #8b949e; display: block; margin-top: 8px;">
+                    Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #58a6ff;">Google AI Studio</a>
+                </small>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    👋 Hi! I'm your AI coding assistant. I can help you write, debug, and explain code. I've pre-filled your API key - just click "Save Key" to get started!
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <textarea 
+                    class="chat-input" 
+                    id="chatInput" 
+                    placeholder="Ask me anything about your code..."
+                    disabled
+                ></textarea>
+                <button class="chat-send-btn" id="sendBtn" onclick="sendMessage()" disabled>🚀 Send</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span id="statusText">Ready</span>
+        <span id="cursorPos">Line 1, Column 1</span>
+        <span id="fileInfo">JavaScript</span>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
