@@ -3,11 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cursor Clone - AI Code Editor</title>
+    <title>Pointer - AI Code Editor</title>
     
     <!-- CodeMirror CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="style.css">
@@ -26,10 +29,12 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <div class="logo">⚡</div>
-                <span>Cursor Pro</span>
+                <div class="logo">🎯</div>
+                <span>Pointer</span>
             </div>
-            <button class="new-file-btn" onclick="createNewFile()">✨ New File</button>
+            <button class="new-file-btn" onclick="openNewFileModal()">
+                <i class="fas fa-plus"></i> New File
+            </button>
             <div class="file-explorer" id="fileExplorer">
                 <!-- Files will be added here -->
             </div>
@@ -43,7 +48,7 @@
                 </div>
                 <div class="run-controls">
                     <button class="run-btn" id="runBtn" onclick="runCode()">
-                        ▶️ Run Code
+                        <i class="fas fa-play"></i> Run Code
                     </button>
                 </div>
             </div>
@@ -54,7 +59,9 @@
                 <div class="output-panel" id="outputPanel">
                     <div class="output-header">
                         <h4>Output</h4>
-                        <button class="chat-toggle" onclick="toggleOutput()">×</button>
+                        <button class="chat-toggle" onclick="toggleOutput()">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                     <div class="output-content" id="outputContent">
                         Ready to run your code...
@@ -66,22 +73,15 @@
         <!-- AI Chat Panel -->
         <div class="chat-panel" id="chatPanel">
             <div class="chat-header">
-                <h3>🤖 AI Assistant</h3>
-                <button class="chat-toggle" onclick="toggleChat()" title="Toggle Chat">×</button>
-            </div>
-            
-            <div class="api-setup" id="apiSetup">
-                <label style="color: #f0f6fc; font-weight: 500;">Gemini API Key:</label>
-                <input type="password" class="api-input" id="apiKeyInput" placeholder="Enter your Gemini API key" value="AIzaSyDRwCMwW4isYZjnwFr1tYt2lT0lHjVVCCc">
-                <button class="api-save-btn" onclick="saveApiKey()">💾 Save Key</button>
-                <small style="color: #8b949e; display: block; margin-top: 8px;">
-                    Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color: #58a6ff;">Google AI Studio</a>
-                </small>
+                <h3><i class="fas fa-robot"></i> AI Assistant</h3>
+                <button class="chat-toggle" onclick="toggleChat()" title="Toggle Chat">
+                    <i class="fas fa-times"></i>
+                </button>
             </div>
 
             <div class="chat-messages" id="chatMessages">
                 <div class="message assistant">
-                    👋 Hi! I'm your AI coding assistant. I can help you write, debug, and explain code. I've pre-filled your API key - just click "Save Key" to get started!
+                    <i class="fas fa-wave-square"></i> Hi! I'm your AI coding assistant powered by Gemini. I can help you write, debug, and explain code. Start typing below to get started!
                 </div>
             </div>
 
@@ -89,18 +89,58 @@
                 <textarea 
                     class="chat-input" 
                     id="chatInput" 
-                    placeholder="Ask me anything about your code..."
-                    disabled
+                    placeholder="Start typing to chat with AI..."
                 ></textarea>
-                <button class="chat-send-btn" id="sendBtn" onclick="sendMessage()" disabled>🚀 Send</button>
+                <button class="chat-send-btn" id="sendBtn" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i> Send
+                </button>
             </div>
         </div>
     </div>
 
+    <!-- Status Bar - Fixed at bottom -->
     <div class="status-bar">
         <span id="statusText">Ready</span>
         <span id="cursorPos">Line 1, Column 1</span>
         <span id="fileInfo">JavaScript</span>
+    </div>
+
+    <!-- New File Modal -->
+    <div id="newFileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-plus"></i> Create New File</h3>
+                <span class="close" onclick="closeNewFileModal()">&times;</span>
+            </div>
+            <input type="text" id="newFileName" class="modal-input" placeholder="Enter file name (e.g., script.js, style.css, index.html)" autofocus>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" onclick="closeNewFileModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="modal-btn primary" onclick="createFileFromModal()">
+                    <i class="fas fa-plus"></i> Create File
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-trash"></i> Delete File</h3>
+                <span class="close" onclick="closeDeleteModal()">&times;</span>
+            </div>
+            <p>Are you sure you want to delete <strong id="deleteFileName"></strong>?</p>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" onclick="closeDeleteModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="modal-btn danger" onclick="confirmDelete()">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Custom JavaScript -->

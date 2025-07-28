@@ -4,19 +4,10 @@ let files = {};
 let activeFile = null;
 let apiKey = 'AIzaSyDRwCMwW4isYZjnwFr1tYt2lT0lHjVVCCc';
 let chatHistory = [];
+let fileToDelete = null;
 
 // Initialize the application
 function init() {
-    // Check for saved API key or use pre-filled one
-    const savedApiKey = localStorage.getItem('gemini_api_key');
-    if (savedApiKey) {
-        apiKey = savedApiKey;
-        document.getElementById('apiKeyInput').value = savedApiKey;
-        enableChat();
-    } else {
-        document.getElementById('apiSetup').classList.add('show');
-    }
-
     // Initialize CodeMirror
     editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
         theme: 'dracula',
@@ -34,16 +25,16 @@ function init() {
     });
 
     // Create welcome file
-    createFile('welcome.js', `// 🎉 Welcome to Cursor Pro!
-// Your AI-powered code editor with execution capabilities
+    createFile('welcome.js', `// 🎯 Welcome to Pointer!
+// Your intelligent AI-powered code editor
 
-console.log('🚀 Hello, World!');
+console.log("🚀 Hello, World!");
 
-// ✨ Features you can try:
+// ✨ Features you can explore:
 // - Write code and run it with Ctrl+Enter
-// - Ask the AI assistant for help
-// - Create multiple files
-// - Auto-syntax highlighting
+// - Chat with AI assistant for help
+// - Create multiple files with different languages
+// - Auto-syntax highlighting and completion
 
 function greet(name) {
     const message = \`👋 Hello, \${name}! Welcome to coding with AI.\`;
@@ -52,9 +43,9 @@ function greet(name) {
 }
 
 // Try running this code!
-greet('Developer');
+greet("Developer");
 
-// 🔥 Ask the AI to:
+// 🤖 Ask the AI to:
 // • Explain this code
 // • Write new functions
 // • Debug errors
@@ -63,7 +54,7 @@ greet('Developer');
 
 const numbers = [1, 2, 3, 4, 5];
 const doubled = numbers.map(n => n * 2);
-console.log('Doubled numbers:', doubled);
+console.log("Doubled numbers:", doubled);
 
 // Math example
 function calculateFactorial(n) {
@@ -71,17 +62,13 @@ function calculateFactorial(n) {
     return n * calculateFactorial(n - 1);
 }
 
-console.log('Factorial of 5:', calculateFactorial(5));`);
+console.log("Factorial of 5:", calculateFactorial(5));
+
+// Try asking the AI: "Can you create a function to find prime numbers?"`);
 
     // Set up event listeners
     setupEventListeners();
-    
-    // Auto-save API key if pre-filled
-    if (apiKey && !savedApiKey) {
-        setTimeout(() => {
-            saveApiKey();
-        }, 1000);
-    }
+    enableChat();
 }
 
 function setupEventListeners() {
@@ -108,13 +95,65 @@ function setupEventListeners() {
         document.getElementById('cursorPos').textContent = 
             `Line ${cursor.line + 1}, Column ${cursor.ch + 1}`;
     });
+
+    // Modal events
+    document.getElementById('newFileName').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            createFileFromModal();
+        } else if (e.key === 'Escape') {
+            closeNewFileModal();
+        }
+    });
+
+    // Click outside modal to close
+    document.getElementById('newFileModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('newFileModal')) {
+            closeNewFileModal();
+        }
+    });
+
+    document.getElementById('deleteModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('deleteModal')) {
+            closeDeleteModal();
+        }
+    });
 }
 
 // File Management
-function createNewFile() {
-    const fileName = prompt('📝 Enter file name:', 'untitled.js');
+function openNewFileModal() {
+    document.getElementById('newFileModal').style.display = 'block';
+    document.getElementById('newFileName').focus();
+}
+
+function closeNewFileModal() {
+    document.getElementById('newFileModal').style.display = 'none';
+    document.getElementById('newFileName').value = '';
+}
+
+function openDeleteModal(fileName) {
+    fileToDelete = fileName;
+    document.getElementById('deleteFileName').textContent = fileName;
+    document.getElementById('deleteModal').style.display = 'block';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+    fileToDelete = null;
+}
+
+function confirmDelete() {
+    if (fileToDelete) {
+        deleteFile(fileToDelete);
+        closeDeleteModal();
+    }
+}
+
+function createFileFromModal() {
+    const fileName = document.getElementById('newFileName').value.trim();
     if (fileName) {
         createFile(fileName, '');
+        closeNewFileModal();
+        showNotification(`Created file: ${fileName}`, 'success');
     }
 }
 
@@ -137,9 +176,14 @@ function addFileToExplorer(fileName) {
     fileItem.onclick = () => switchToFile(fileName);
     
     const icon = getFileIcon(fileName);
+    const iconClass = getIconClass(fileName);
+    
     fileItem.innerHTML = `
-        <span class="file-icon">${icon}</span>
-        <span>${fileName}</span>
+        <span class="file-icon ${iconClass}">${icon}</span>
+        <span class="file-name">${fileName}</span>
+        <button class="file-delete" onclick="event.stopPropagation(); openDeleteModal('${fileName}')" title="Delete file">
+            <i class="fas fa-trash"></i>
+        </button>
     `;
     
     explorer.appendChild(fileItem);
@@ -153,7 +197,9 @@ function addTab(fileName) {
     
     tab.innerHTML = `
         <span>${fileName}</span>
-        <button class="tab-close" onclick="closeFile('${fileName}')" title="Close">×</button>
+        <button class="tab-close" onclick="closeFile('${fileName}')" title="Close">
+            <i class="fas fa-times"></i>
+        </button>
     `;
     
     tabs.appendChild(tab);
@@ -169,7 +215,8 @@ function switchToFile(fileName) {
     // Update active states
     document.querySelectorAll('.file-item').forEach(item => {
         item.classList.remove('active');
-        if (item.textContent.trim() === fileName) {
+        const nameSpan = item.querySelector('.file-name');
+        if (nameSpan && nameSpan.textContent === fileName) {
             item.classList.add('active');
         }
     });
@@ -186,7 +233,7 @@ function switchToFile(fileName) {
     document.getElementById('fileInfo').textContent = 
         lang.charAt(0).toUpperCase() + lang.slice(1);
     
-    updateStatus(`📝 Editing ${fileName}`);
+    updateStatus(`Editing ${fileName}`);
 }
 
 function closeFile(fileName) {
@@ -202,7 +249,8 @@ function closeFile(fileName) {
     
     // Remove from explorer and tabs
     document.querySelectorAll('.file-item').forEach(item => {
-        if (item.textContent.trim() === fileName) {
+        const nameSpan = item.querySelector('.file-name');
+        if (nameSpan && nameSpan.textContent === fileName) {
             item.remove();
         }
     });
@@ -225,6 +273,14 @@ function closeFile(fileName) {
     }
 }
 
+function deleteFile(fileName) {
+    if (files[fileName]) {
+        // Close the file first if it's open
+        closeFile(fileName);
+        showNotification(`Deleted file: ${fileName}`, 'success');
+    }
+}
+
 function updateTabTitle(fileName) {
     const tab = Array.from(document.querySelectorAll('.tab')).find(t => 
         t.textContent.includes(fileName)
@@ -239,7 +295,7 @@ function updateTabTitle(fileName) {
 // Code Execution
 function runCode() {
     if (!activeFile) {
-        updateStatus('❌ No file selected');
+        updateStatus('No file selected');
         return;
     }
 
@@ -254,7 +310,7 @@ function runCode() {
     outputContent.textContent = 'Running code...\n';
     outputContent.className = 'output-content';
     
-    updateStatus('🚀 Running code...');
+    updateStatus('Running code...');
     
     try {
         if (fileExt === 'js' || fileExt === 'javascript') {
@@ -264,13 +320,13 @@ function runCode() {
         } else if (fileExt === 'css') {
             runCSS(code, outputContent);
         } else {
-            outputContent.textContent = `⚠️ Code execution not supported for .${fileExt} files yet.\nSupported: JavaScript (.js), HTML (.html), CSS (.css)`;
+            outputContent.textContent = `Code execution not supported for .${fileExt} files yet.\nSupported: JavaScript (.js), HTML (.html), CSS (.css)`;
             outputContent.className = 'output-content error';
         }
     } catch (error) {
-        outputContent.textContent = `❌ Error: ${error.message}`;
+        outputContent.textContent = `Error: ${error.message}`;
         outputContent.className = 'output-content error';
-        updateStatus('❌ Execution failed');
+        updateStatus('Execution failed');
     }
 }
 
@@ -283,17 +339,17 @@ function runJavaScript(code, outputElement) {
     let output = '';
     
     console.log = (...args) => {
-        output += '📝 ' + args.map(arg => 
+        output += args.map(arg => 
             typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
         ).join(' ') + '\n';
     };
     
     console.error = (...args) => {
-        output += '❌ ERROR: ' + args.join(' ') + '\n';
+        output += 'ERROR: ' + args.join(' ') + '\n';
     };
     
     console.warn = (...args) => {
-        output += '⚠️ WARNING: ' + args.join(' ') + '\n';
+        output += 'WARNING: ' + args.join(' ') + '\n';
     };
     
     try {
@@ -301,18 +357,18 @@ function runJavaScript(code, outputElement) {
         const result = eval(code);
         
         if (result !== undefined) {
-            output += `\n✅ Result: ${typeof result === 'object' ? JSON.stringify(result, null, 2) : result}\n`;
+            output += `\nResult: ${typeof result === 'object' ? JSON.stringify(result, null, 2) : result}\n`;
         }
         
-        outputElement.textContent = output || '✅ Code executed successfully (no output)';
+        outputElement.textContent = output || 'Code executed successfully (no output)';
         outputElement.className = 'output-content success';
-        updateStatus('✅ Code executed successfully');
+        updateStatus('Code executed successfully');
         
     } catch (error) {
-        output += `\n❌ Runtime Error: ${error.message}\n`;
+        output += `\nRuntime Error: ${error.message}\n`;
         outputElement.textContent = output;
         outputElement.className = 'output-content error';
-        updateStatus('❌ Runtime error');
+        updateStatus('Runtime error');
     } finally {
         // Restore original console methods
         console.log = originalLog;
@@ -328,13 +384,13 @@ function runHTML(code, outputElement) {
         newWindow.document.write(code);
         newWindow.document.close();
         
-        outputElement.textContent = '🌐 HTML opened in new tab!';
+        outputElement.textContent = 'HTML opened in new tab!';
         outputElement.className = 'output-content success';
-        updateStatus('✅ HTML executed in new tab');
+        updateStatus('HTML executed in new tab');
     } catch (error) {
-        outputElement.textContent = `❌ Error opening HTML: ${error.message}`;
+        outputElement.textContent = `Error opening HTML: ${error.message}`;
         outputElement.className = 'output-content error';
-        updateStatus('❌ HTML execution failed');
+        updateStatus('HTML execution failed');
     }
 }
 
@@ -369,13 +425,13 @@ ${code}
         newWindow.document.write(htmlContent);
         newWindow.document.close();
         
-        outputElement.textContent = '🎨 CSS preview opened in new tab!';
+        outputElement.textContent = 'CSS preview opened in new tab!';
         outputElement.className = 'output-content success';
-        updateStatus('✅ CSS preview opened');
+        updateStatus('CSS preview opened');
     } catch (error) {
-        outputElement.textContent = `❌ Error creating CSS preview: ${error.message}`;
+        outputElement.textContent = `Error creating CSS preview: ${error.message}`;
         outputElement.className = 'output-content error';
-        updateStatus('❌ CSS preview failed');
+        updateStatus('CSS preview failed');
     }
 }
 
@@ -409,43 +465,31 @@ function getLanguageFromExtension(fileName) {
 function getFileIcon(fileName) {
     const ext = fileName.split('.').pop().toLowerCase();
     const iconMap = {
-        'js': '🟨',
-        'jsx': '⚛️',
-        'ts': '🔷',
-        'tsx': '⚛️',
-        'html': '🌐',
-        'css': '🎨',
-        'py': '🐍',
-        'json': '📋',
-        'md': '📝',
-        'txt': '📄',
-        'scss': '💜',
-        'sass': '💜'
+        'js': '<i class="fab fa-js-square"></i>',
+        'jsx': '<i class="fab fa-react"></i>',
+        'ts': '<i class="fas fa-file-code"></i>',
+        'tsx': '<i class="fab fa-react"></i>',
+        'html': '<i class="fab fa-html5"></i>',
+        'css': '<i class="fab fa-css3-alt"></i>',
+        'py': '<i class="fab fa-python"></i>',
+        'json': '<i class="fas fa-brackets-curly"></i>',
+        'md': '<i class="fab fa-markdown"></i>',
+        'txt': '<i class="fas fa-file-alt"></i>',
+        'scss': '<i class="fab fa-sass"></i>',
+        'sass': '<i class="fab fa-sass"></i>'
     };
-    return iconMap[ext] || '📄';
+    return iconMap[ext] || '<i class="fas fa-file"></i>';
+}
+
+function getIconClass(fileName) {
+    const ext = fileName.split('.').pop().toLowerCase();
+    return ext;
 }
 
 // Chat functionality
-function saveApiKey() {
-    const keyInput = document.getElementById('apiKeyInput');
-    const key = keyInput.value.trim();
-    
-    if (!key) {
-        alert('Please enter a valid API key');
-        return;
-    }
-    
-    apiKey = key;
-    localStorage.setItem('gemini_api_key', key);
-    document.getElementById('apiSetup').classList.remove('show');
-    enableChat();
-    updateStatus('🔑 API key saved successfully');
-}
-
 function enableChat() {
     document.getElementById('chatInput').disabled = false;
     document.getElementById('sendBtn').disabled = false;
-    document.getElementById('chatInput').placeholder = 'Ask me anything about your code...';
 }
 
 function toggleChat() {
@@ -482,7 +526,8 @@ async function sendMessage() {
         
     } catch (error) {
         loadingDiv.remove();
-        addMessageToChat('assistant', `❌ Error: ${error.message}`);
+        addMessageToChat('assistant', `Error: ${error.message}`);
+        showNotification('Failed to connect to AI', 'error');
     }
 }
 
@@ -491,10 +536,10 @@ function addMessageToChat(role, content) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}`;
     
-    if (content.includes('<pre>') || content.includes('```')) {
+    if (content.includes('```') || content.includes('<pre>')) {
         messageDiv.innerHTML = formatCodeInMessage(content);
     } else {
-        messageDiv.innerHTML = content;
+        messageDiv.innerHTML = formatMessage(content);
     }
     
     messagesContainer.appendChild(messageDiv);
@@ -503,15 +548,102 @@ function addMessageToChat(role, content) {
     return messageDiv;
 }
 
+function formatMessage(content) {
+    // Format inline code
+    return content.replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
 function formatCodeInMessage(content) {
-    // Format code blocks
-    return content
-        .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-        .replace(/`([^`]+)`/g, '<code style="background: #0d1117; padding: 2px 4px; border-radius: 3px; border: 1px solid #30363d;">$1</code>');
+    // Format code blocks with enhanced UI
+    return content.replace(/```(\w+)?\n([\s\S]*?)```/g, (match, lang, code) => {
+        const language = lang || 'text';
+        const filename = getDefaultFilename(language);
+        
+        return `
+            <div class="code-block">
+                <div class="code-header">
+                    <span>${language.toUpperCase()}</span>
+                    <div class="code-actions">
+                        <button class="code-action-btn" onclick="copyCode(this)">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <button class="code-action-btn accept" onclick="acceptCode(this, '${language}', '${filename}')">
+                            <i class="fas fa-check"></i> Accept
+                        </button>
+                    </div>
+                </div>
+                <div class="code-content">${escapeHtml(code.trim())}</div>
+            </div>
+        `;
+    }).replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+function getDefaultFilename(language) {
+    const extensions = {
+        'javascript': 'script.js',
+        'js': 'script.js',
+        'html': 'index.html',
+        'css': 'style.css',
+        'python': 'script.py',
+        'py': 'script.py',
+        'json': 'data.json',
+        'markdown': 'readme.md',
+        'md': 'readme.md'
+    };
+    return extensions[language.toLowerCase()] || 'file.txt';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function copyCode(button) {
+    const codeContent = button.closest('.code-block').querySelector('.code-content');
+    const code = codeContent.textContent;
+    
+    navigator.clipboard.writeText(code).then(() => {
+        const originalHtml = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        setTimeout(() => {
+            button.innerHTML = originalHtml;
+        }, 2000);
+    }).catch(() => {
+        showNotification('Failed to copy code', 'error');
+    });
+}
+
+function acceptCode(button, language, defaultFilename) {
+    const codeContent = button.closest('.code-block').querySelector('.code-content');
+    const code = codeContent.textContent;
+    
+    // Generate unique filename if default exists
+    let filename = defaultFilename;
+    let counter = 1;
+    while (files[filename]) {
+        const ext = defaultFilename.split('.').pop();
+        const name = defaultFilename.replace(`.${ext}`, '');
+        filename = `${name}_${counter}.${ext}`;
+        counter++;
+    }
+    
+    // Create new file with the code
+    createFile(filename, code);
+    
+    // Update button state
+    const originalHtml = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check"></i> Added!';
+    button.style.background = '#2ea043';
+    setTimeout(() => {
+        button.innerHTML = originalHtml;
+        button.style.background = '';
+    }, 2000);
+    
+    showNotification(`Created file: ${filename}`, 'success');
 }
 
 async function queryGemini(message, context) {
-    // Updated API endpoint for the correct model
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
     
     let prompt = message;
@@ -525,7 +657,7 @@ ${context.currentCode}
 
 User question: ${message}
 
-Please provide a helpful response. If you're suggesting code changes, please explain them clearly and format code blocks properly.`;
+Please provide a helpful response. If you're suggesting code changes or new code, please format them properly with code blocks and specify the language. Be concise but thorough.`;
     }
     
     const requestBody = {
@@ -589,24 +721,45 @@ function updateStatus(message) {
     }, 3000);
 }
 
+function showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    
+    const icon = type === 'error' ? '<i class="fas fa-exclamation-circle"></i>' : '<i class="fas fa-check-circle"></i>';
+    notification.innerHTML = `${icon} ${message}`;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
 // Keyboard shortcuts
 document.addEventListener('keydown', (e) => {
     // Ctrl/Cmd + S to save (prevent default browser save)
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        updateStatus('💾 Auto-saved');
+        updateStatus('Auto-saved');
     }
     
     // Ctrl/Cmd + N for new file
     if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault();
-        createNewFile();
+        openNewFileModal();
     }
     
     // Ctrl/Cmd + Enter to run code
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         runCode();
+    }
+    
+    // Escape to close modals
+    if (e.key === 'Escape') {
+        closeNewFileModal();
+        closeDeleteModal();
     }
 });
 
