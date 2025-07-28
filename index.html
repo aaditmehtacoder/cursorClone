@@ -27,45 +27,64 @@
 <body>
     <div class="container">
         <!-- Sidebar -->
-        <div class="sidebar">
+        <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="logo">🎯</div>
-                <span>Pointer</span>
+                <span class="sidebar-title">Pointer</span>
             </div>
+            
             <button class="new-file-btn" onclick="openNewFileModal()">
-                <i class="fas fa-plus"></i> New File
+                <i class="fas fa-plus"></i> 
+                <span>New File</span>
             </button>
+            
             <div class="file-explorer" id="fileExplorer">
                 <!-- Files will be added here -->
             </div>
+            
+            <!-- Resize handle for sidebar -->
+            <div class="resize-handle resize-handle-right" data-resize="sidebar"></div>
         </div>
 
         <!-- Main Editor -->
-        <div class="editor-container">
+        <div class="editor-container" id="editorContainer">
             <div class="editor-toolbar">
-                <div class="tabs" id="tabs">
-                    <!-- Tabs will be added here -->
+                <div class="tabs-container">
+                    <div class="tabs" id="tabs">
+                        <!-- Tabs will be added here -->
+                    </div>
                 </div>
+                
                 <div class="run-controls">
-                    <button class="run-btn" id="runBtn" onclick="runCode()">
-                        <i class="fas fa-play"></i> Run Code
+                    <button class="run-btn run-website" id="runWebsiteBtn" onclick="runWebsite()" title="Run as Complete Website">
+                        <i class="fas fa-globe"></i> 
+                        <span>Run Website</span>
+                    </button>
+                    
+                    <button class="run-btn run-single" id="runBtn" onclick="runCode()" title="Run Current File">
+                        <i class="fas fa-play"></i> 
+                        <span>Run Code</span>
                     </button>
                 </div>
             </div>
+            
             <div class="editor-wrapper">
                 <div class="code-area">
                     <textarea id="editor"></textarea>
                 </div>
+                
                 <div class="output-panel" id="outputPanel">
                     <div class="output-header">
-                        <h4>Output</h4>
-                        <button class="chat-toggle" onclick="toggleOutput()">
+                        <h4><i class="fas fa-terminal"></i> Output</h4>
+                        <button class="panel-close-btn" onclick="toggleOutput()" title="Close Output">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
                     <div class="output-content" id="outputContent">
                         Ready to run your code...
                     </div>
+                    <!-- Resize handle for output -->
+                    <div class="resize-handle resize-handle-left" data-resize="output"></div>
                 </div>
             </div>
         </div>
@@ -74,14 +93,16 @@
         <div class="chat-panel" id="chatPanel">
             <div class="chat-header">
                 <h3><i class="fas fa-robot"></i> AI Assistant</h3>
-                <button class="chat-toggle" onclick="toggleChat()" title="Toggle Chat">
+                <button class="panel-close-btn" onclick="toggleChat()" title="Toggle Chat">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
 
             <div class="chat-messages" id="chatMessages">
                 <div class="message assistant">
-                    <i class="fas fa-wave-square"></i> Hi! I'm your AI coding assistant powered by Gemini. I can help you write, debug, and explain code. Start typing below to get started!
+                    <div class="message-content">
+                        <i class="fas fa-sparkles"></i> Hi! I'm your AI coding assistant. I can help you build complete websites! Try creating index.html, style.css, and script.js files, then click "Run Website" to see them work together!
+                    </div>
                 </div>
             </div>
 
@@ -92,28 +113,74 @@
                     placeholder="Start typing to chat with AI..."
                 ></textarea>
                 <button class="chat-send-btn" id="sendBtn" onclick="sendMessage()">
-                    <i class="fas fa-paper-plane"></i> Send
+                    <i class="fas fa-paper-plane"></i> 
+                    <span>Send</span>
                 </button>
             </div>
+            
+            <!-- Resize handle for chat -->
+            <div class="resize-handle resize-handle-left" data-resize="chat"></div>
         </div>
     </div>
 
     <!-- Status Bar - Fixed at bottom -->
     <div class="status-bar">
-        <span id="statusText">Ready</span>
-        <span id="cursorPos">Line 1, Column 1</span>
-        <span id="fileInfo">JavaScript</span>
+        <div class="status-left">
+            <span id="statusText">Ready</span>
+        </div>
+        <div class="status-right">
+            <span id="cursorPos">Line 1, Column 1</span>
+            <span class="status-separator">|</span>
+            <span id="fileInfo">JavaScript</span>
+            <span class="status-separator">|</span>
+            <span id="zoomLevel">100%</span>
+        </div>
+    </div>
+
+    <!-- Zoom Controls -->
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out (Ctrl/Cmd + -)">
+            <i class="fas fa-minus"></i>
+        </button>
+        <button class="zoom-btn zoom-reset" onclick="resetZoom()" title="Reset Zoom (Ctrl/Cmd + 0)">
+            <i class="fas fa-expand-arrows-alt"></i>
+        </button>
+        <button class="zoom-btn" onclick="zoomIn()" title="Zoom In (Ctrl/Cmd + +)">
+            <i class="fas fa-plus"></i>
+        </button>
     </div>
 
     <!-- New File Modal -->
-    <div id="newFileModal" class="modal">
+    <div id="newFileModal" class="modal" style="display: none;">
         <div class="modal-content">
             <div class="modal-header">
                 <h3><i class="fas fa-file-plus"></i> Create New File</h3>
                 <span class="close" onclick="closeNewFileModal()">&times;</span>
             </div>
-            <input type="text" id="newFileName" class="modal-input" placeholder="Enter file name (e.g., script.js, style.css, index.html)" autofocus>
-            <div class="modal-buttons">
+            
+            <div class="modal-body">
+                <input type="text" id="newFileName" class="modal-input" placeholder="Enter file name (e.g., script.js, style.css, index.html)" autofocus>
+                
+                <div class="file-templates">
+                    <h4><i class="fas fa-magic"></i> Quick Templates</h4>
+                    <div class="template-buttons">
+                        <button class="template-btn template-html" onclick="createTemplate('index.html')">
+                            <i class="fab fa-html5"></i>
+                            <span>HTML</span>
+                        </button>
+                        <button class="template-btn template-css" onclick="createTemplate('style.css')">
+                            <i class="fab fa-css3-alt"></i>
+                            <span>CSS</span>
+                        </button>
+                        <button class="template-btn template-js" onclick="createTemplate('script.js')">
+                            <i class="fab fa-js-square"></i>
+                            <span>JavaScript</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
                 <button class="modal-btn secondary" onclick="closeNewFileModal()">
                     <i class="fas fa-times"></i> Cancel
                 </button>
@@ -125,20 +192,50 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="modal">
-        <div class="modal-content">
+    <div id="deleteModal" class="modal" style="display: none;">
+        <div class="modal-content delete-modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-trash"></i> Delete File</h3>
+                <h3><i class="fas fa-trash-alt"></i> Delete File</h3>
                 <span class="close" onclick="closeDeleteModal()">&times;</span>
             </div>
-            <p>Are you sure you want to delete <strong id="deleteFileName"></strong>?</p>
-            <div class="modal-buttons">
+            
+            <div class="modal-body">
+                <div class="delete-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Are you sure you want to delete <strong id="deleteFileName"></strong>?</p>
+                    <p class="delete-subtitle">This action cannot be undone.</p>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
                 <button class="modal-btn secondary" onclick="closeDeleteModal()">
                     <i class="fas fa-times"></i> Cancel
                 </button>
                 <button class="modal-btn danger" onclick="confirmDelete()">
                     <i class="fas fa-trash"></i> Delete
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Website Preview Modal -->
+    <div id="websiteModal" class="modal website-modal" style="display: none;">
+        <div class="modal-content website-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-globe"></i> Website Preview</h3>
+                <div class="website-controls">
+                    <button class="modal-btn secondary" onclick="refreshWebsite()">
+                        <i class="fas fa-refresh"></i> Refresh
+                    </button>
+                    <button class="modal-btn secondary" onclick="openWebsiteNewTab()">
+                        <i class="fas fa-external-link-alt"></i> New Tab
+                    </button>
+                    <span class="close" onclick="closeWebsiteModal()">&times;</span>
+                </div>
+            </div>
+            
+            <div class="website-frame-container">
+                <iframe id="websiteFrame" class="website-frame"></iframe>
             </div>
         </div>
     </div>
