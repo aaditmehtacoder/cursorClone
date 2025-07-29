@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pointer - AI Code Editor</title>
+    
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Authentication Styles -->
+    <link rel="stylesheet" href="auth-styles.css">
+    
+    <!-- CodeMirror JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">🎯</div>
+                <span class="sidebar-title">Pointer</span>
+                <!-- User menu will be added here by auth-check.js -->
+            </div>
+            
+            <button class="new-file-btn" onclick="openNewFileModal()">
+                <i class="fas fa-plus"></i> 
+                <span>New File</span>
+            </button>
+            
+            <div class="file-explorer" id="fileExplorer">
+                <!-- Files will be added here -->
+            </div>
+            
+            <!-- Resize handle for sidebar -->
+            <div class="resize-handle resize-handle-right" data-resize="sidebar"></div>
+        </div>
+
+        <!-- Main Editor -->
+        <div class="editor-container" id="editorContainer">
+            <div class="editor-toolbar">
+                <div class="tabs-container">
+                    <div class="tabs" id="tabs">
+                        <!-- Tabs will be added here -->
+                    </div>
+                </div>
+                
+                <div class="run-controls">
+                    <button class="run-btn run-website" id="runWebsiteBtn" onclick="runWebsite()" title="Run as Complete Website">
+                        <i class="fas fa-globe"></i> 
+                        <span>Run Website</span>
+                    </button>
+                    
+                    <button class="run-btn run-single" id="runBtn" onclick="runCode()" title="Run Current File">
+                        <i class="fas fa-play"></i> 
+                        <span>Run Code</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="editor-wrapper">
+                <div class="code-area">
+                    <textarea id="editor"></textarea>
+                </div>
+                
+                <div class="output-panel" id="outputPanel">
+                    <div class="output-header">
+                        <h4><i class="fas fa-terminal"></i> Output</h4>
+                        <button class="panel-close-btn" onclick="toggleOutput()" title="Close Output">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="output-content" id="outputContent">
+                        Ready to run your code...
+                    </div>
+                    <!-- Resize handle for output -->
+                    <div class="resize-handle resize-handle-left" data-resize="output"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Chat Panel -->
+        <div class="chat-panel" id="chatPanel">
+            <div class="chat-header">
+                <h3><i class="fas fa-robot"></i> AI Assistant</h3>
+                <button class="panel-close-btn" onclick="toggleChat()" title="Toggle Chat">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-content">
+                        <i class="fas fa-sparkles"></i> Hi! I'm your AI coding assistant. I can help you build complete websites! Try creating index.html, style.css, and script.js files, then click "Run Website" to see them work together!
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <textarea 
+                    class="chat-input" 
+                    id="chatInput" 
+                    placeholder="Start typing to chat with AI..."
+                ></textarea>
+                <button class="chat-send-btn" id="sendBtn" onclick="sendMessage()">
+                    <i class="fas fa-paper-plane"></i> 
+                    <span>Send</span>
+                </button>
+            </div>
+            
+            <!-- Resize handle for chat -->
+            <div class="resize-handle resize-handle-left" data-resize="chat"></div>
+        </div>
+    </div>
+
+    <!-- Status Bar - Fixed at bottom -->
+    <div class="status-bar">
+        <div class="status-left">
+            <span id="statusText">Ready</span>
+        </div>
+        <div class="status-right">
+            <span id="cursorPos">Line 1, Column 1</span>
+            <span class="status-separator">|</span>
+            <span id="fileInfo">JavaScript</span>
+            <span class="status-separator">|</span>
+            <span id="zoomLevel">100%</span>
+        </div>
+    </div>
+
+    <!-- Zoom Controls -->
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out (Ctrl/Cmd + -)">
+            <i class="fas fa-minus"></i>
+        </button>
+        <button class="zoom-btn zoom-reset" onclick="resetZoom()" title="Reset Zoom (Ctrl/Cmd + 0)">
+            <i class="fas fa-expand-arrows-alt"></i>
+        </button>
+        <button class="zoom-btn" onclick="zoomIn()" title="Zoom In (Ctrl/Cmd + +)">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+
+    <!-- New File Modal -->
+    <div id="newFileModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-plus"></i> Create New File</h3>
+                <span class="close" onclick="closeNewFileModal()">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <input type="text" id="newFileName" class="modal-input" placeholder="Enter file name (e.g., script.js, style.css, index.html)" autofocus>
+                
+                <div class="file-templates">
+                    <h4><i class="fas fa-magic"></i> Quick Templates</h4>
+                    <div class="template-buttons">
+                        <button class="template-btn template-html" onclick="createTemplate('index.html')">
+                            <i class="fab fa-html5"></i>
+                            <span>HTML</span>
+                        </button>
+                        <button class="template-btn template-css" onclick="createTemplate('style.css')">
+                            <i class="fab fa-css3-alt"></i>
+                            <span>CSS</span>
+                        </button>
+                        <button class="template-btn template-js" onclick="createTemplate('script.js')">
+                            <i class="fab fa-js-square"></i>
+                            <span>JavaScript</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="modal-btn secondary" onclick="closeNewFileModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="modal-btn primary" onclick="createFileFromModal()">
+                    <i class="fas fa-plus"></i> Create File
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal" style="display: none;">
+        <div class="modal-content delete-modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-trash-alt"></i> Delete File</h3>
+                <span class="close" onclick="closeDeleteModal()">&times;</span>
+            </div>
+            
+            <div class="modal-body">
+                <div class="delete-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Are you sure you want to delete <strong id="deleteFileName"></strong>?</p>
+                    <p class="delete-subtitle">This action cannot be undone.</p>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="modal-btn secondary" onclick="closeDeleteModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button class="modal-btn danger" onclick="confirmDelete()">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Website Preview Modal -->
+    <div id="websiteModal" class="modal website-modal" style="display: none;">
+        <div class="modal-content website-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-globe"></i> Website Preview</h3>
+                <div class="website-controls">
+                    <button class="modal-btn secondary" onclick="refreshWebsite()">
+                        <i class="fas fa-refresh"></i> Refresh
+                    </button>
+                    <button class="modal-btn secondary" onclick="openWebsiteNewTab()">
+                        <i class="fas fa-external-link-alt"></i> New Tab
+                    </button>
+                    <span class="close" onclick="closeWebsiteModal()">&times;</span>
+                </div>
+            </div>
+            
+            <div class="website-frame-container">
+                <iframe id="websiteFrame" class="website-frame"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Screen for Authentication Check -->
+    <div id="authLoadingScreen" class="auth-loading-screen">
+        <div class="auth-loading-content">
+            <div class="loading-logo">
+                <div class="logo">🎯</div>
+            </div>
+            <h2>Loading Pointer...</h2>
+            <p>Checking authentication status</p>
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase Configuration and Authentication -->
+    <script type="module" src="firebase-config.js"></script>
+    <script type="module" src="auth.js"></script>
+    <script type="module" src="auth-check.js"></script>
+    
+    <!-- Custom JavaScript (loaded after auth check) -->
+    <script src="script.js"></script>
+
+    <style>
+        /* Loading screen styles */
+        .auth-loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            color: var(--text-primary);
+        }
+
+        .auth-loading-content {
+            text-align: center;
+            animation: fadeInUp 0.6s ease;
+        }
+
+        .loading-logo .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 40px;
+            color: white;
+            margin: 0 auto 30px;
+            box-shadow: 
+                0 8px 32px rgba(255, 107, 107, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            animation: logoPulse 2s ease-in-out infinite;
+        }
+
+        .auth-loading-content h2 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #58a6ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-loading-content p {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-bottom: 40px;
+        }
+
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+        }
+
+        .loading-spinner .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 107, 107, 0.3);
+            border-top: 3px solid #ff6b6b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Hide main content initially */
+        .container {
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .container.loaded {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* User menu styles (already added by auth-check.js but included here for completeness) */
+        .user-menu {
+            position: relative;
+            margin-left: auto;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            min-width: 200px;
+            z-index: 1000;
+            overflow: hidden;
+            animation: dropdownSlideIn 0.2s ease;
+        }
+
+        @keyframes dropdownSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .user-info {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .user-email {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .dropdown-item {
+            width: 100%;
+            padding: 12px 16px;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .dropdown-item:hover {
+            background: var(--bg-secondary);
+        }
+
+        .dropdown-item.danger {
+            color: var(--danger-color);
+        }
+
+        .dropdown-item.danger:hover {
+            background: rgba(248, 81, 73, 0.1);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 8px 0;
+        }
+    </style>
+</body>
+</html>
